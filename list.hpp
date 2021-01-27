@@ -38,6 +38,19 @@ namespace ft {
                 b.next = b.prev = &b;
             }
         }
+
+        void transfer(ListNode<T>* first, ListNode<T>* last) {
+            if (this != last) {
+                last->prev->next = this;
+                first->prev->next = last;
+                this->prev->next = first;
+
+                ListNode<T>* tmp = this->prev;
+                this->prev = last->prev;
+                last->prev = first->prev;
+                first->prev = tmp;
+            }
+        }
     };
 
     template <class T>
@@ -84,6 +97,15 @@ namespace ft {
     class list {
         ListNode<T> header;
         size_t _size;
+
+        size_t distance(const ListNode<T>* first, const ListNode<T>* last) {
+            size_t n = 0;
+            while (first != last) {
+                ++n;
+                first = first->next;
+            }
+            return n;
+        }
     public:
         typedef ListNode<T> node_type;
         typedef ptrdiff_t diff_type;
@@ -234,10 +256,27 @@ namespace ft {
         }
 
         void splice(iterator position, list& x) {
-
+            position.node->transfer(x.begin().node, x.end().node);
+            _size += x.size();
+            x._size = 0;
         }
-        void splice(iterator position, list& x, iterator i);
-        void splice(iterator position, list& x, iterator first, iterator last);
+
+        void splice(iterator position, list& x, iterator i) {
+            iterator j = i;
+            ++j;
+            if (position == i || position == j)
+                return;
+            position.node->transfer(i.node, j.node);
+            _size++;
+            x._size--;
+        }
+
+        void splice(iterator position, list& x, iterator first, iterator last) {
+            size_t dist = distance(first.node, last.node);
+            position.node->transfer(first.node, last.node);
+            _size += dist;
+            x._size -= dist;
+        }
     };
 }
 

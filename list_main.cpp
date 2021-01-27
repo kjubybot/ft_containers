@@ -3,13 +3,23 @@
 #include <list>
 
 int main() {
-    int a[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    a[0] = 5;
-    ft::list<int> lst(a, a + 10);
-    ft::list<int> lst2;
-    lst.front() = 123456;
-    lst2.resize(15, 43);
-    lst.swap(lst2);
+    ft::list<int> lst;
+    for (int i = 0; i < 5; ++i)
+        lst.push_back(i);
     for (ft::list<int>::iterator it = lst.begin(); it != lst.end(); ++it)
-        std::cout << *it << std::endl;
+        std::cout << *it << " ";
+    std::cout << std::endl;
+    ft::list<int> lst2;
+    for (int i = 1; i < 4; ++i)
+        lst2.push_back(i * 10);
+    ft::list<int>::iterator it = lst.begin();
+    std::cout << "lst size = " << lst.size() << " lst2 size = " << lst2.size() << std::endl;
+    lst.splice(it, lst2, ++lst2.begin());
+    for (ft::list<int>::iterator it = lst.begin(); it != lst.end(); ++it)
+        std::cout << *it << " ";
+    std::cout << std::endl;
+    for (ft::list<int>::iterator it = lst2.begin(); it != lst2.end(); ++it)
+        std::cout << *it << " ";
+    std::cout << std::endl;
+    std::cout << "lst size = " << lst.size() << " lst2 size = " << lst2.size() << std::endl;
 }
