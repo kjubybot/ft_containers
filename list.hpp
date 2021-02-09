@@ -277,7 +277,164 @@ namespace ft {
             _size += dist;
             x._size -= dist;
         }
+
+        void remove(const_reference val) {
+            iterator it = begin();
+            while (it != end()) {
+                iterator next = it;
+                ++next;
+                if (*it == val)
+                    erase(it);
+                it = next;
+            }
+        }
+
+        template <class Predicate>
+        void remove_if(Predicate pred) {
+            iterator it = begin();
+            while (it != end()) {
+                iterator next = it;
+                ++next;
+                if (pred(*it))
+                    erase(it);
+                it = next;
+            }
+        }
+
+        void unique() {
+            iterator it = begin();
+            if (it == end())
+                return;
+            iterator next = it;
+            while (++next != end()) {
+                if (*next == *it)
+                    erase(next);
+                else
+                    it = next;
+                next = it;
+            }
+        }
+
+        template <class BinaryPredicate>
+        void unique(BinaryPredicate pred) {
+            iterator it = begin();
+            if (it == end())
+                return;
+            iterator next = it;
+            while (++next != end()) {
+                if (pred(*next, *it))
+                    erase(next);
+                else
+                    it = next;
+                next = it;
+            }
+        }
+
+        void merge(list& x) {
+            if (this != &x) {
+                iterator it1 = begin();
+                iterator it2 = x.begin();
+                while (it1 != end() && it2 != x.end()) {
+                    if (*it2 < *it1) {
+                        iterator next = it2;
+                        ++next;
+                        it1.node->transfer(it2.node, next.node);
+                        it2 = next;
+                    } else
+                        ++it1;
+                }
+                if (it2 != x.end())
+                    it1.node->transfer(it2.node, x.end().node);
+                _size += x.size();
+                x._size = 0;
+            }
+        }
+
+        template <class Compare>
+        void merge(list& x, Compare comp) {
+            if (this != &x) {
+                iterator it1 = begin();
+                iterator it2 = x.begin();
+                while (it1 != end() && it2 != x.end()) {
+                    if (comp(*it2, *it1)) {
+                        iterator next = it2;
+                        ++next;
+                        it1.node->transfer(it2.node, next.node);
+                        it2 = next;
+                    } else
+                        ++it1;
+                }
+                if (it2 != x.end())
+                    it1.node->transfer(it2.node, x.end().node);
+                _size += x.size();
+                x._size = 0;
+            }
+        }
+
+        void sort() {
+            list tmp1, tmp2;
+            do {
+                tmp1.splice(tmp1.begin(), *this, begin());
+                tmp2.merge(tmp1);
+            } while (!empty());
+            swap(tmp2);
+        }
+
+        template <class Compare>
+        void sort(Compare comp) {
+            list tmp1, tmp2;
+            do {
+                tmp1.splice(tmp1.begin(), *this, begin());
+                tmp2.merge(tmp1);
+            } while (!empty());
+            swap(tmp2);
+        }
+
+        void reverse() {
+           iterator it = end();
+           do {
+               std::swap(it.node->prev, it.node->next);
+               --it;
+           } while (it != end());
+        }
     };
+
+    template <class T>
+    bool operator==(const list<T>& a, const list<T>& b) {
+        if (a.size() != b.size())
+            return false;
+        typename list<T>::const_iterator it1 = a.begin();
+        typename list<T>::const_iterator it2 = b.begin();
+        while (it1 != a.end() && it2 != b.end() && *it1 == *it2) {
+            ++it1;
+            ++it2;
+        }
+        return it1 == a.end() && it2 == b.end();
+    }
+
+    template <class T>
+    bool operator!=(const list<T>& a, const list<T>& b)
+    { return !(a == b); }
+
+    template <class T>
+    bool operator<(const list<T>& a, const list<T>& b)
+    { return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end()); }
+
+    template <class T>
+    bool operator>(const list<T>& a, const list<T>& b)
+    { return b < a; }
+
+    template <class T>
+    bool operator<=(const list<T>& a, const list<T>& b)
+    { return !(b < a); }
+
+    template <class T>
+    bool operator>=(const list<T>& a, const list<T>& b)
+    { return !(a < b); }
+
+    template <class T>
+    void swap(list<T>& a, list<T>& b)
+    { a.swap(b); }
 }
 
 #endif
