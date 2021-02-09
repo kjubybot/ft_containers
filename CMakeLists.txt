@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 98)
 
 include_directories(.)
 
-add_executable(ft_containers
+add_executable(list_test
         list.hpp
         list_main.cpp)
+
+add_executable(deque_test
+        deque.hpp
+        deque_main.cpp)
