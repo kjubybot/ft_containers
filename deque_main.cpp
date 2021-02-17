@@ -8,6 +8,4 @@ int main() {
     deq.push_back(2);
     std::deque<int>::iterator it = deq.begin();
     std::cout << *it << std::endl;
-    --it;
-    std::cout << *it << std::endl;
 }

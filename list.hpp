@@ -6,8 +6,6 @@
 #include <iterator>
 #include <limits>
 
-
-
 namespace ft {
     template <class T>
     struct ListNode {
@@ -92,6 +90,14 @@ namespace ft {
         _Self& operator--() { node = node->prev; return *this; }
         _Self operator--(int) { _Self tmp = *this; node = node->prev; return tmp; }
     };
+
+    template <class T>
+    bool operator==(const list_iterator<T>& a, const list_const_iterator<T>& b)
+    { return a.node == b.node; }
+
+    template <class T>
+    bool operator!=(const list_iterator<T>& a, const list_const_iterator<T>& b)
+    { return a.node != b.node; }
 
     template <class T>
     class list {
