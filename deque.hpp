@@ -2,6 +2,8 @@
 #define FT_CONTAINERS_DEQUE_HPP
 
 #include <cstddef>
+#include <memory>
+#include "type_traits.hpp"
 
 namespace ft {
     size_t buf_size(size_t size)
@@ -183,7 +185,7 @@ namespace ft {
         alloc_type allocator;
 
         map_alloc_type get_map_allocator() const
-        { return map_alloc_t(allocator); }
+        { return map_alloc_type(allocator); }
 
         void map_init(size_t num_elems) {
             const size_t num_nodes = num_elems / buf_size(sizeof(T)) + 1;
@@ -227,10 +229,66 @@ namespace ft {
                 reallocate_map(nodes_to_add, false);
         }
 
+        void reserve_map_at_front(size_t nodes_to_add = 1) {
+            if (nodes_to_add > start.node - map)
+                reallocate_map(nodes_to_add, true);
+        }
+
         void fill_initialize(const_reference val) {
             for (T** cur = start.nod; cur < finish.node; ++cur)
                 std::fill(*cur, *cur + buf_size(sizeof(T)), val);
             std::fill(finish.first, finish.cur, val);
+        }
+
+        template <class Integer>
+        void initialize_dispatch(Integer n, Integer x, true_type) {
+            map_init(n);
+            fill_initialize(x);
+        }
+
+        template <class InputIterator>
+        void initialize_dispatch(InputIterator first, InputIterator last, false_type) {
+            map_init(0);
+            for (; first != last; ++first)
+                push_back(*first);
+        }
+
+        template <class Integer>
+        void assign_dispatch(Integer n, Integer x, true_type) {
+
+        }
+
+        template <class InputIterator>
+        void assign_dispatch(InputIterator first, InputIterator last, false_type) {
+
+        }
+
+        void destroy_data(iterator first, iterator last) {
+//            for (T** cur = first.node + 1; cur < last.node; ++cur) {
+//                for (T* i = *cur; i - *cur < buf_size(sizeof(T)); ++i)
+//                    allocator.destroy(i);
+//            }
+//            if (start.node != finish.node) {
+//                for (T* i = start.cur; i != start.last; ++i)
+//                    allocator.destroy(i);
+//                for (T* i = finish.first; i != finish.cur; ++i)
+//                    allocator.destroy(i);
+//            } else {
+//                for (T* i = start.cur; i != finish.cur; ++i)
+//                    allocator.destroy(i);
+//            }
+            for (; first != last; ++first)
+                allocator.destroy(first.cur);
+        }
+
+        void destroy_nodes(T** first, T** last) {
+            for (; first < last; ++first)
+                allocator.deallocate(*first, buf_size(sizeof(T)));
+        }
+
+        void erase_at_end(iterator pos) {
+            destroy_data(pos, end());
+            destroy_nodes(pos.node + 1, finish.node);
         }
 
     public:
@@ -244,11 +302,94 @@ namespace ft {
             fill_initialize(val);
         }
 
+        template <class InputIterator>
+        deque(InputIterator first, InputIterator last, const alloc_type& allocator = alloc_type()) :
+            map(0), map_size(0), start(), finish(), allocator(allocator) {
+            typedef typename ::is_integer<InputIterator>::type Integral;
+            initialize_dispatch(first, last, Integral());
+        }
+
+        deque(const deque& x) : map(0), map_size(0), start(), finish(), allocator(x.allocator) {
+            map_init(x.size());
+            for (deque::iterator it = x.begin(); it != x.end(); ++it)
+                push_back(*it);
+        }
+
         ~deque() {
-            for (T** cur = start.node; cur <= finish.node; ++cur)
-                allocator.deallocate(*cur, buf_size(sizeof(T)));
+            destroy_data(begin(), end());
+            destroy_nodes(start.node, finish.node + 1);
             get_map_allocator().deallocate(map, map_size);
         }
+
+//        deque& operator=(const deque& x) {
+//            size_t len = x.size();
+//            if (len > size())
+//        }
+
+        alloc_type get_allocator() const
+        { return allocator; }
+
+        iterator begin()
+        { return start; }
+
+        const_iterator begin() const
+        { return start; }
+
+        iterator end()
+        { return finish; }
+
+        const_iterator end() const
+        { return finish; }
+
+        reverse_iterator rbegin()
+        { return reverse_iterator(finish); }
+
+        const_reverse_iterator rbegin() const
+        { return const_reverse_iterator(finish); }
+
+        reverse_iterator rend()
+        { return reverse_iterator(start); }
+
+        const_reverse_iterator rend() const
+        { return const_reverse_iterator(start); }
+
+        size_t size() const
+        { return finish - start; }
+
+        size_t max_size() const
+        { return allocator.max_size(); }
+
+        reference operator[](size_t n)
+        { return start[n]; }
+
+        const_reference operator[](size_t n) const
+        { return start[n]; }
+
+        reference at(size_t n) {
+            if (n >= size())
+                throw std::out_of_range("deque out of range");
+            return (*this)[n];
+        }
+
+        const_reference at(size_t n) const {
+            if (n >= size())
+                throw std::out_of_range("deque out of range");
+            return (*this)[n];
+        }
+
+        reference front()
+        { return *begin(); }
+
+        const_reference front() const
+        { return *begin(); }
+
+        reference back()
+        { return *(--end()); }
+
+        const_reference back() const
+        { return *(--end()); }
+
+
 
         void push_back(const_reference val) {
             if (finish.cur != finish.last - 1) {
@@ -257,10 +398,51 @@ namespace ft {
             } else {
                 reserve_map_at_back();
                 *(finish.node + 1) = new T[buf_size(sizeof(T))];
-                allocator.construct(finish.node.cur, val);
+                allocator.construct(finish.cur, val);
                 finish.set_node(finish.node + 1);
                 finish.cur = finish.first;
             }
+        }
+
+        void push_front(const_reference val) {
+            if (start.cur != start.first) {
+                --start.cur;
+                allocator.construct(start.cur, val);
+            } else {
+                reserve_map_at_front();
+                *(start.node - 1) = new T[buf_size(sizeof(T))];
+                start.set_node(start.node - 1);
+                start.cur = start.last - 1;
+                allocator.construct(start.cur, val);
+            }
+        }
+
+        void pop_back() {
+            if (finish.cur != finish.first) {
+                --finish.cur;
+                allocator.destroy(finish.cur);
+            } else {
+                destroy_nodes(finish.node, finish.node + 1);
+                finish.set_node(finish.node - 1);
+                finish.cur = finish.last - 1;
+                allocator.destroy(finish.cur);
+            }
+        }
+
+        void pop_front() {
+            if (start.cur != start.last - 1) {
+                allocator.destroy(start.cur);
+                ++start.cur;
+            } else {
+                allocator.destroy(start.cur);
+                destroy_nodes(start.node, start.node + 1);
+                start.set_node(start.node + 1);
+                start.cur = start.first;
+            }
+        }
+
+        iterator insert(iterator position, const_reference val) {
+
         }
     };
 }
