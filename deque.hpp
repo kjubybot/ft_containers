@@ -11,11 +11,12 @@ namespace ft {
 
     template <class T, class Ref, class Ptr>
     struct deque_iterator {
+        typedef std::random_access_iterator_tag iterator_category;
         typedef deque_iterator _Self;
         typedef T value_type;
         typedef Ref reference;
         typedef Ptr pointer;
-        typedef ptrdiff_t diff_type;
+        typedef ptrdiff_t difference_type;
         T* cur;
         T* first;
         T* last;
@@ -73,32 +74,32 @@ namespace ft {
             return tmp;
         }
 
-        _Self& operator+=(diff_type n) {
-            diff_type offset = n + (cur - first);
+        _Self& operator+=(difference_type n) {
+            difference_type offset = n + (cur - first);
             if (offset >= 0 && offset < buf_size(sizeof(T)))
-                cur += offset;
+                cur += n;
             else {
-                diff_type node_offset = offset > 0 ? offset / buf_size(sizeof(T)) : -((-offset - 1) / buf_size(sizeof(T))) - 1;
+                difference_type node_offset = offset > 0 ? offset / buf_size(sizeof(T)) : -((-offset - 1) / buf_size(sizeof(T))) - 1;
                 set_node(node + node_offset);
                 cur = first + (offset - node_offset * buf_size(sizeof(T)));
             }
             return *this;
         }
 
-        _Self operator+(diff_type n) const {
+        _Self operator+(difference_type n) const {
             _Self tmp = *this;
             return tmp += n;
         }
 
-        _Self& operator-=(diff_type n)
+        _Self& operator-=(difference_type n)
         { return *this += -n; }
 
-        _Self operator-(diff_type n) const {
+        _Self operator-(difference_type n) const {
             _Self tmp = *this;
             return tmp -= n;
         }
 
-        T& operator[](diff_type n) const
+        T& operator[](difference_type n) const
         { return *(*this + n); }
     };
 
@@ -151,11 +152,11 @@ namespace ft {
     { return !(a < b); }
 
     template <class T, class Ref, class Ptr>
-    typename deque_iterator<T, Ref, Ptr>::diff_type operator-(const deque_iterator<T, Ref, Ptr>& a, const deque_iterator<T, Ref, Ptr>& b)
+    typename deque_iterator<T, Ref, Ptr>::difference_type operator-(const deque_iterator<T, Ref, Ptr>& a, const deque_iterator<T, Ref, Ptr>& b)
     { return buf_size(sizeof(T)) * (a.node - b.node) + (a.cur - a.first) - (b.cur - b.first); }
 
     template <class T, class RefL, class PtrL, class RefR, class PtrR>
-    typename deque_iterator<T, RefL, PtrL>::diff_type operator-(const deque_iterator<T, RefL, PtrL>& a, const deque_iterator<T, RefR, PtrR>& b)
+    typename deque_iterator<T, RefL, PtrL>::difference_type operator-(const deque_iterator<T, RefL, PtrL>& a, const deque_iterator<T, RefR, PtrR>& b)
     { return buf_size(sizeof(T)) * (a.node - b.node) + (a.cur - a.first) - (b.cur - b.first); }
 
     template <class T, class Ref, class Ptr>
@@ -165,7 +166,7 @@ namespace ft {
     template <class T, class Alloc = std::allocator<T> >
     class deque {
     public:
-        typedef ptrdiff_t diff_type;
+        typedef ptrdiff_t difference_type;
         typedef T value_type;
         typedef T& reference;
         typedef const T& const_reference;
@@ -264,19 +265,6 @@ namespace ft {
         }
 
         void destroy_data(iterator first, iterator last) {
-//            for (T** cur = first.node + 1; cur < last.node; ++cur) {
-//                for (T* i = *cur; i - *cur < buf_size(sizeof(T)); ++i)
-//                    allocator.destroy(i);
-//            }
-//            if (start.node != finish.node) {
-//                for (T* i = start.cur; i != start.last; ++i)
-//                    allocator.destroy(i);
-//                for (T* i = finish.first; i != finish.cur; ++i)
-//                    allocator.destroy(i);
-//            } else {
-//                for (T* i = start.cur; i != finish.cur; ++i)
-//                    allocator.destroy(i);
-//            }
             for (; first != last; ++first)
                 allocator.destroy(first.cur);
         }
@@ -289,6 +277,92 @@ namespace ft {
         void erase_at_end(iterator pos) {
             destroy_data(pos, end());
             destroy_nodes(pos.node + 1, finish.node);
+        }
+
+        iterator reserve_elements_at_front(size_t n) {
+            size_t avail = start.cur - start.first;
+            if (n > avail)
+                new_elements_at_front(n - avail);
+            return start - n;
+        }
+
+        void new_elements_at_front(size_t n) {
+            size_t new_nodes = (n + buf_size(sizeof(T)) - 1) / buf_size(sizeof(T));
+            reserve_map_at_front(new_nodes);
+            for (size_t i = 1; i <= new_nodes; ++i)
+                *(start.node - i) = allocator.allocate(buf_size(sizeof(T)));
+        }
+
+        iterator reserve_elements_at_back(size_t n) {
+            size_t avail = (finish.last - finish.cur) - 1;
+            if (n > avail)
+                new_elements_at_back(n - avail);
+            return finish + n;
+        }
+
+        void new_elements_at_back(size_t n) {
+            size_t new_nodes = (n + buf_size(sizeof(T)) - 1) / buf_size(sizeof(T));
+            reserve_map_at_back(new_nodes);
+            for (size_t i = 1; i <= new_nodes; ++i)
+                *(finish.node + i) = allocator.allocate(buf_size(sizeof(T)));
+        }
+
+        void fill_insert(iterator position, size_t n, const_reference val) {
+            if (position.cur == start.cur) {
+                iterator new_start = reserve_elements_at_front(n);
+                std::fill(new_start, start, val);
+                start = new_start;
+            } else if (position.cur == finish.cur) {
+                iterator new_finish = reserve_elements_at_back(n);
+                std::fill(finish, new_finish, val);
+                finish = new_finish;
+            } else {
+                size_t elems_before = position - start;
+                if (elems_before < size() / 2) {
+                    iterator new_start = reserve_elements_at_front(n);
+                    std::copy(start, position, new_start);
+                    std::fill(position - n, position, val);
+                    start = new_start;
+                } else {
+                    iterator new_finish = reserve_elements_at_back(n);
+                    size_t elems_after = size() - elems_before;
+                    std::copy_backward(position, finish, new_finish);
+                    std::fill(position, position + n, val);
+                    finish = new_finish;
+                }
+            }
+        }
+
+        template <class Integer>
+        void insert_dispatch(iterator position, Integer n, Integer val, true_type)
+        { fill_insert(position, n, val); }
+
+        template <class InputIterator>
+        void insert_dispatch(iterator position, InputIterator fisrt, InputIterator last, false_type) {
+            difference_type n = std::distance(fisrt, last);
+            if (position.cur == start.cur) {
+                iterator new_start = reserve_elements_at_front(n);
+                std::copy(fisrt, last, new_start);
+                start = new_start;
+            } else if (position.cur == finish.cur) {
+                iterator new_finish = reserve_elements_at_back(n);
+                std::copy_backward(fisrt, last, new_finish);
+                finish = new_finish;
+            } else {
+                size_t elems_before = position - start;
+                if (elems_before < size() / 2) {
+                    iterator new_start = reserve_elements_at_front(n);
+                    std::copy(start, position, new_start);
+                    std::copy_backward(fisrt, last, position);
+                    start = new_start;
+                } else {
+                    iterator new_finish = reserve_elements_at_back(n);
+                    size_t elems_after = size() - elems_before;
+                    std::copy_backward(position, finish, new_finish);
+                    std::copy(fisrt, last, position);
+                    finish = new_finish;
+                }
+            }
         }
 
     public:
@@ -389,15 +463,13 @@ namespace ft {
         const_reference back() const
         { return *(--end()); }
 
-
-
         void push_back(const_reference val) {
             if (finish.cur != finish.last - 1) {
                 allocator.construct(finish.cur, val);
                 ++finish.cur;
             } else {
                 reserve_map_at_back();
-                *(finish.node + 1) = new T[buf_size(sizeof(T))];
+                *(finish.node + 1) = allocator.allocate(buf_size(sizeof(T)));
                 allocator.construct(finish.cur, val);
                 finish.set_node(finish.node + 1);
                 finish.cur = finish.first;
@@ -410,7 +482,7 @@ namespace ft {
                 allocator.construct(start.cur, val);
             } else {
                 reserve_map_at_front();
-                *(start.node - 1) = new T[buf_size(sizeof(T))];
+                *(start.node - 1) = allocator.allocate(buf_size(sizeof(T)));
                 start.set_node(start.node - 1);
                 start.cur = start.last - 1;
                 allocator.construct(start.cur, val);
@@ -442,7 +514,49 @@ namespace ft {
         }
 
         iterator insert(iterator position, const_reference val) {
+           if (position == start) {
+               push_front(val);
+               return start;
+           } else if (position == finish) {
+               push_back(val);
+               return --end();
+           } else {
+               difference_type index = position - start;
+               if (index < size() / 2) {
+                   push_front(front());
+                   iterator front1 = begin();
+                   ++front1;
+                   iterator pos = front1 + index;
+                   std::copy(front1, pos, begin());
+                   *pos = val;
+                   return pos;
+               } else {
+                   push_back(back());
+                   iterator back1 = end();
+                   --back1;
+                   iterator pos = begin() + index;
+                   std::copy_backward(pos, back1, end());
+                   *pos = val;
+                   return pos;
+               }
+           }
+        }
 
+        void insert(iterator position, size_t n, const_reference val)
+        { fill_insert(position, n, val); }
+
+        template <class InputIterator>
+        void insert(iterator position, InputIterator first, InputIterator last) {
+            typedef typename ::is_integer<InputIterator>::type Integral;
+            insert_dispatch(position, first, last, Integral());
+        }
+
+        iterator erase(iterator position) {
+            if (position.cur == start.cur) {
+
+            } else if (position.cur == finish.cur) {
+
+            }
         }
     };
 }
