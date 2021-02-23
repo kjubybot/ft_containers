@@ -255,13 +255,28 @@ namespace ft {
         }
 
         template <class Integer>
-        void assign_dispatch(Integer n, Integer x, true_type) {
-
-        }
+        void assign_dispatch(Integer n, Integer x, true_type)
+        { fill_assign(n, x); }
 
         template <class InputIterator>
         void assign_dispatch(InputIterator first, InputIterator last, false_type) {
+            iterator cur = begin();
+            for (; first != last && cur != end(); ++first, ++cur)
+                *cur = *first;
+            if (first == last)
+                erase_at_end(cur);
+            else
+                insert(end(), first, last);
+        }
 
+        void fill_assign(size_t n, const_reference val) {
+            if (n > size()) {
+                std::fill(begin(), end(), val);
+                insert(end(), n - size(), val);
+            } else {
+                erase_at_end(begin() + n);
+                std::fill(begin(), end(), val);
+            }
         }
 
         void destroy_data(iterator first, iterator last) {
@@ -274,9 +289,16 @@ namespace ft {
                 allocator.deallocate(*first, buf_size(sizeof(T)));
         }
 
+        void erase_at_begin(iterator pos) {
+            destroy_data(begin(), pos);
+            destroy_nodes(start.node, pos.node);
+            start = pos;
+        }
+
         void erase_at_end(iterator pos) {
             destroy_data(pos, end());
-            destroy_nodes(pos.node + 1, finish.node);
+            destroy_nodes(pos.node + 1, finish.node + 1);
+            finish = pos;
         }
 
         iterator reserve_elements_at_front(size_t n) {
@@ -395,10 +417,18 @@ namespace ft {
             get_map_allocator().deallocate(map, map_size);
         }
 
-//        deque& operator=(const deque& x) {
-//            size_t len = x.size();
-//            if (len > size())
-//        }
+        deque& operator=(const deque& x) {
+            if (&x != this) {
+                if (size() >= x.size())
+                    erase_at_end(std::copy(x.begin(), x.end(), start));
+                else {
+                    const_iterator mid = x.begin() + size();
+                    std::copy(x.begin(), mid, start);
+                    insert(end(), mid, x.end());
+                }
+            }
+            return *this;
+        }
 
         alloc_type get_allocator() const
         { return allocator; }
@@ -433,6 +463,16 @@ namespace ft {
         size_t max_size() const
         { return allocator.max_size(); }
 
+        void resize(size_t n, value_type val = value_type()) {
+            if (n < size())
+                erase_at_end(begin() + n);
+            else
+                insert(end(), n - size(), val);
+        }
+
+        bool empty() const
+        { return start == finish; }
+
         reference operator[](size_t n)
         { return start[n]; }
 
@@ -462,6 +502,15 @@ namespace ft {
 
         const_reference back() const
         { return *(--end()); }
+
+        void assign(size_t n, const_reference val)
+        { fill_assign(n, val); }
+
+        template <class InputIterator>
+        void assign(InputIterator first, InputIterator last) {
+            typedef typename ::is_integer<InputIterator>::type Integral;
+            assign_dispatch(first, last, Integral());
+        }
 
         void push_back(const_reference val) {
             if (finish.cur != finish.last - 1) {
@@ -552,12 +601,42 @@ namespace ft {
         }
 
         iterator erase(iterator position) {
-            if (position.cur == start.cur) {
-
-            } else if (position.cur == finish.cur) {
-
+            iterator next = begin();
+            ++next;
+            difference_type index = position - start;
+            if (index < size() / 2) {
+                if (next != begin())
+                    std::copy_backward(begin(), position, next);
+                pop_front();
+            } else {
+                if (next != end())
+                    std::copy(next, end(), position);
+                pop_back();
             }
+            return begin() + index;
         }
+
+        iterator erase(iterator first, iterator last) {
+            if (first == begin() && last == end()) {
+                clear();
+                return end();
+            }
+            difference_type n = last - first;
+            difference_type elems_before = first - begin();
+            if (elems_before < (size() - n) / 2) {
+                if (first != begin())
+                    std::copy_backward(begin(), first, last);
+                erase_at_begin(begin() + n);
+            } else {
+                if (last != end())
+                    std::copy(last, end(), first);
+                erase_at_end(end() - n);
+            }
+            return begin() + elems_before;
+        }
+
+        void clear()
+        { erase_at_end(begin()); }
     };
 }
 
