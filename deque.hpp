@@ -23,7 +23,7 @@ namespace ft {
         T** node;
 
         deque_iterator() : cur(0), first(0), last(0), node(0) {}
-        deque_iterator(const _Self& x) : cur(x.cur), first(x.first), last(x.last), node(x.node) {}
+        deque_iterator(const deque_iterator<T, T&, T*>& x) : cur(x.cur), first(x.first), last(x.last), node(x.node) {}
 
         bool operator==(const _Self& b) const
         { return cur == b.cur; }
@@ -236,7 +236,7 @@ namespace ft {
         }
 
         void fill_initialize(const_reference val) {
-            for (T** cur = start.nod; cur < finish.node; ++cur)
+            for (T** cur = start.node; cur < finish.node; ++cur)
                 std::fill(*cur, *cur + buf_size(sizeof(T)), val);
             std::fill(finish.first, finish.cur, val);
         }
@@ -407,8 +407,7 @@ namespace ft {
 
         deque(const deque& x) : map(0), map_size(0), start(), finish(), allocator(x.allocator) {
             map_init(x.size());
-            for (deque::iterator it = x.begin(); it != x.end(); ++it)
-                push_back(*it);
+            std::copy(x.begin(), x.end(), start);
         }
 
         ~deque() {
@@ -429,9 +428,6 @@ namespace ft {
             }
             return *this;
         }
-
-        alloc_type get_allocator() const
-        { return allocator; }
 
         iterator begin()
         { return start; }
@@ -635,9 +631,48 @@ namespace ft {
             return begin() + elems_before;
         }
 
+        void swap(deque& x) {
+            std::swap(map, x.map);
+            std::swap(start, x.start);
+            std::swap(finish, x.finish);
+            std::swap(map_size, x.map_size);
+            std::swap(allocator, x.allocator);
+        }
+
         void clear()
         { erase_at_end(begin()); }
+
+        alloc_type get_allocator() const
+        { return allocator; }
     };
+
+    template <class T, class Alloc>
+    bool operator==(const deque<T, Alloc>& a, const deque<T, Alloc>& b)
+    { return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin()); }
+
+    template <class T, class Alloc>
+    bool operator<(const deque<T, Alloc>& a, const deque<T, Alloc>& b)
+    { return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end()); }
+
+    template <class T, class Alloc>
+    bool operator!=(const deque<T, Alloc>& a, const deque<T, Alloc>& b)
+    { return !(a == b); }
+
+    template <class T, class Alloc>
+    bool operator>(const deque<T, Alloc>& a, const deque<T, Alloc>& b)
+    { return b < a; }
+
+    template <class T, class Alloc>
+    bool operator<=(const deque<T, Alloc>& a, const deque<T, Alloc>& b)
+    { return !(b < a); }
+
+    template <class T, class Alloc>
+    bool operator>=(const deque<T, Alloc>& a, const deque<T, Alloc>& b)
+    { return !(a < b); }
+
+    template <class T, class Alloc>
+    void swap(deque<T, Alloc>& a, deque<T, Alloc>& b)
+    { a.swap(b); }
 }
 
 #endif
