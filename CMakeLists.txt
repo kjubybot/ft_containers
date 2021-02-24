@@ -12,3 +12,12 @@ add_executable(list_test
 add_executable(deque_test
         deque.hpp
         deque_main.cpp)
+
+add_executable(queue_test
+        queue.hpp
+        queue_main.cpp)
+
+
+add_executable(stack_test
+        stack.hpp
+        stack_main.cpp)

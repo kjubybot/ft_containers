@@ -17,6 +17,7 @@ namespace ft {
         typedef Ref reference;
         typedef Ptr pointer;
         typedef ptrdiff_t difference_type;
+        typedef size_t size_type;
         T* cur;
         T* first;
         T* last;
@@ -167,6 +168,7 @@ namespace ft {
     class deque {
     public:
         typedef ptrdiff_t difference_type;
+        typedef size_t size_type;
         typedef T value_type;
         typedef T& reference;
         typedef const T& const_reference;
@@ -180,7 +182,7 @@ namespace ft {
         typedef typename Alloc::template rebind<T>::other alloc_type;
     private:
         T** map;
-        size_t map_size;
+        size_type map_size;
         iterator start;
         iterator finish;
         alloc_type allocator;
@@ -188,9 +190,9 @@ namespace ft {
         map_alloc_type get_map_allocator() const
         { return map_alloc_type(allocator); }
 
-        void map_init(size_t num_elems) {
-            const size_t num_nodes = num_elems / buf_size(sizeof(T)) + 1;
-            map_size = std::max((size_t)8, num_nodes + 2);
+        void map_init(size_type num_elems) {
+            const size_type num_nodes = num_elems / buf_size(sizeof(T)) + 1;
+            map_size = std::max((size_type)8, num_nodes + 2);
             map = get_map_allocator().allocate(map_size);// new T*[map_size];
             T** nstart = map + (map_size - num_nodes) / 2;
             T** nfinish = nstart + num_nodes;
@@ -202,9 +204,9 @@ namespace ft {
             finish.cur = finish.first + num_elems % buf_size(sizeof(T));
         }
 
-        void reallocate_map(size_t nodes_to_add, bool at_front) {
-            size_t old_num_nodes = finish.node - start.node + 1;
-            size_t new_num_nodes = old_num_nodes + nodes_to_add;
+        void reallocate_map(size_type nodes_to_add, bool at_front) {
+            size_type old_num_nodes = finish.node - start.node + 1;
+            size_type new_num_nodes = old_num_nodes + nodes_to_add;
             T** new_start;
             if (map_size > new_num_nodes * 2) {
                 new_start = map + (map_size - new_num_nodes) / 2 + (at_front ? nodes_to_add : 0);
@@ -213,7 +215,7 @@ namespace ft {
                 else
                     std::copy_backward(start.node, finish.node + 1, new_start);
             } else {
-                size_t new_map_size = map_size + std::max(map_size, nodes_to_add) + 2;
+                size_type new_map_size = map_size + std::max(map_size, nodes_to_add) + 2;
                 T** new_map = get_map_allocator().allocate(new_map_size); //new T*[new_map_size];
                 new_start = new_map + (new_map_size - new_num_nodes) / 2 + (at_front ? nodes_to_add : 0);
                 std::copy(start.node, finish.node + 1, new_start);
@@ -225,12 +227,12 @@ namespace ft {
             finish.set_node(new_start + old_num_nodes + 1);
         }
 
-        void reserve_map_at_back(size_t nodes_to_add = 1) {
+        void reserve_map_at_back(size_type nodes_to_add = 1) {
             if (nodes_to_add + 1 > map_size - (finish.node - map))
                 reallocate_map(nodes_to_add, false);
         }
 
-        void reserve_map_at_front(size_t nodes_to_add = 1) {
+        void reserve_map_at_front(size_type nodes_to_add = 1) {
             if (nodes_to_add > start.node - map)
                 reallocate_map(nodes_to_add, true);
         }
@@ -269,7 +271,7 @@ namespace ft {
                 insert(end(), first, last);
         }
 
-        void fill_assign(size_t n, const_reference val) {
+        void fill_assign(size_type n, const_reference val) {
             if (n > size()) {
                 std::fill(begin(), end(), val);
                 insert(end(), n - size(), val);
@@ -301,35 +303,35 @@ namespace ft {
             finish = pos;
         }
 
-        iterator reserve_elements_at_front(size_t n) {
-            size_t avail = start.cur - start.first;
+        iterator reserve_elements_at_front(size_type n) {
+            size_type avail = start.cur - start.first;
             if (n > avail)
                 new_elements_at_front(n - avail);
             return start - n;
         }
 
-        void new_elements_at_front(size_t n) {
-            size_t new_nodes = (n + buf_size(sizeof(T)) - 1) / buf_size(sizeof(T));
+        void new_elements_at_front(size_type n) {
+            size_type new_nodes = (n + buf_size(sizeof(T)) - 1) / buf_size(sizeof(T));
             reserve_map_at_front(new_nodes);
-            for (size_t i = 1; i <= new_nodes; ++i)
+            for (size_type i = 1; i <= new_nodes; ++i)
                 *(start.node - i) = allocator.allocate(buf_size(sizeof(T)));
         }
 
-        iterator reserve_elements_at_back(size_t n) {
-            size_t avail = (finish.last - finish.cur) - 1;
+        iterator reserve_elements_at_back(size_type n) {
+            size_type avail = (finish.last - finish.cur) - 1;
             if (n > avail)
                 new_elements_at_back(n - avail);
             return finish + n;
         }
 
-        void new_elements_at_back(size_t n) {
-            size_t new_nodes = (n + buf_size(sizeof(T)) - 1) / buf_size(sizeof(T));
+        void new_elements_at_back(size_type n) {
+            size_type new_nodes = (n + buf_size(sizeof(T)) - 1) / buf_size(sizeof(T));
             reserve_map_at_back(new_nodes);
-            for (size_t i = 1; i <= new_nodes; ++i)
+            for (size_type i = 1; i <= new_nodes; ++i)
                 *(finish.node + i) = allocator.allocate(buf_size(sizeof(T)));
         }
 
-        void fill_insert(iterator position, size_t n, const_reference val) {
+        void fill_insert(iterator position, size_type n, const_reference val) {
             if (position.cur == start.cur) {
                 iterator new_start = reserve_elements_at_front(n);
                 std::fill(new_start, start, val);
@@ -339,7 +341,7 @@ namespace ft {
                 std::fill(finish, new_finish, val);
                 finish = new_finish;
             } else {
-                size_t elems_before = position - start;
+                size_type elems_before = position - start;
                 if (elems_before < size() / 2) {
                     iterator new_start = reserve_elements_at_front(n);
                     std::copy(start, position, new_start);
@@ -347,7 +349,7 @@ namespace ft {
                     start = new_start;
                 } else {
                     iterator new_finish = reserve_elements_at_back(n);
-                    size_t elems_after = size() - elems_before;
+                    size_type elems_after = size() - elems_before;
                     std::copy_backward(position, finish, new_finish);
                     std::fill(position, position + n, val);
                     finish = new_finish;
@@ -371,7 +373,7 @@ namespace ft {
                 std::copy_backward(fisrt, last, new_finish);
                 finish = new_finish;
             } else {
-                size_t elems_before = position - start;
+                size_type elems_before = position - start;
                 if (elems_before < size() / 2) {
                     iterator new_start = reserve_elements_at_front(n);
                     std::copy(start, position, new_start);
@@ -379,7 +381,7 @@ namespace ft {
                     start = new_start;
                 } else {
                     iterator new_finish = reserve_elements_at_back(n);
-                    size_t elems_after = size() - elems_before;
+                    size_type elems_after = size() - elems_before;
                     std::copy_backward(position, finish, new_finish);
                     std::copy(fisrt, last, position);
                     finish = new_finish;
@@ -392,7 +394,7 @@ namespace ft {
             map_init(0);
         }
 
-        explicit deque(size_t n, const_reference val = value_type(), const alloc_type& allocator = alloc_type()) :
+        explicit deque(size_type n, const_reference val = value_type(), const alloc_type& allocator = alloc_type()) :
             map(0), map_size(0), start(), finish(), allocator(allocator) {
             map_init(n);
             fill_initialize(val);
@@ -453,13 +455,13 @@ namespace ft {
         const_reverse_iterator rend() const
         { return const_reverse_iterator(start); }
 
-        size_t size() const
+        size_type size() const
         { return finish - start; }
 
-        size_t max_size() const
+        size_type max_size() const
         { return allocator.max_size(); }
 
-        void resize(size_t n, value_type val = value_type()) {
+        void resize(size_type n, value_type val = value_type()) {
             if (n < size())
                 erase_at_end(begin() + n);
             else
@@ -469,19 +471,19 @@ namespace ft {
         bool empty() const
         { return start == finish; }
 
-        reference operator[](size_t n)
+        reference operator[](size_type n)
         { return start[n]; }
 
-        const_reference operator[](size_t n) const
+        const_reference operator[](size_type n) const
         { return start[n]; }
 
-        reference at(size_t n) {
+        reference at(size_type n) {
             if (n >= size())
                 throw std::out_of_range("deque out of range");
             return (*this)[n];
         }
 
-        const_reference at(size_t n) const {
+        const_reference at(size_type n) const {
             if (n >= size())
                 throw std::out_of_range("deque out of range");
             return (*this)[n];
@@ -499,7 +501,7 @@ namespace ft {
         const_reference back() const
         { return *(--end()); }
 
-        void assign(size_t n, const_reference val)
+        void assign(size_type n, const_reference val)
         { fill_assign(n, val); }
 
         template <class InputIterator>
@@ -587,7 +589,7 @@ namespace ft {
            }
         }
 
-        void insert(iterator position, size_t n, const_reference val)
+        void insert(iterator position, size_type n, const_reference val)
         { fill_insert(position, n, val); }
 
         template <class InputIterator>
