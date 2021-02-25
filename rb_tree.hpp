@@ -133,6 +133,7 @@ namespace ft {
     private:
         rb_tree_node<value_type> header;
         size_type node_count;
+        node_alloc_type node_allocator;
 
         void initialize() {
             header.color = RED;
@@ -351,6 +352,15 @@ namespace ft {
             }
             return y;
         }
+
+        iterator insert(node_type x, node_type p, const value_type& val) {
+            bool insert_left = (x != 0 || p == &header || Compare(val.first, p->val.first));
+            node_type n = node_allocator.allocate(1);
+            allocator_type(node_allocator).construct(&n->val, val);
+            insert_and_rebalance(insert_left, x, p);
+            ++node_count;
+            return iterator(n);
+        }
     public:
         rb_tree()
         { initialize(); }
@@ -360,6 +370,80 @@ namespace ft {
 
         iterator end()
         { return iterator(&header); }
+
+        size_type size() const
+        { return node_count; }
+
+        pair<iterator, bool> insert_unique(const value_type& val) {
+           node_type x = header.parent;
+           node_type y = &header;
+           bool comp = true;
+
+           while (x) {
+               y = x;
+               comp = Compare(val.first, x->val.first);
+               x = comp ? x->left : x->right;
+           }
+           iterator j = iterator(y);
+           if (comp) {
+               if (j == begin())
+                   return std::pair<iterator, bool>(insert(x, y, val), true);
+               else
+                   --j;
+           }
+           if (Compare(j.node->val.first, val.first))
+               return std::pair<iterator, bool>(insert(x, y, val), true);
+           return std::pair<iterator, bool>(j, false);
+        }
+
+        iterator insert_equal(const value_type& val) {
+            node_type x = header.parent;
+            node_type y = &header;
+
+            while (x) {
+                y = x;
+                x = Compare(val.first, x->val.first) ? x->left : x->right;
+            }
+            return insert(x, y, val);
+        }
+
+        iterator insert_unique(iterator position, const value_type& val) {
+            if (position.node == &header) {
+                if (size() > 0 && Compare(header.right.first, val.first))
+                    return insert(0, header.right, val);
+                else
+                    return insert_unique(val).first;
+            } else if (Compare(val.first, position->first)) {
+                iterator before = position;
+                --before;
+                if (position.node == header.left)
+                    return insert(position.node, position.node, val);
+                else if (Compare(before->first, val.first)) {
+                    if (before.node->right == 0)
+                        return insert(0, before.node, val);
+                    else
+                        return insert(position.node, position.node, val);
+                } else
+                    return insert_unique(val).first;
+            } else if (Compare(position->first, val.first)) {
+                iterator after = position;
+                ++after;
+                if (position.node == header.right)
+                    return insert(0, position.node, val);
+                else if (Compare(val.first, after->first)) {
+                    if (position.node->right == 0)
+                        return insert(0, position.node, val);
+                    else
+                        return insert(after.node, after.node, val);
+                } else
+                    return insert_unique(val).first;
+            }
+            return iterator(position.node);
+        }
+
+        iterator insert_equal(iterator position, const value_type& val) {
+
+        }
     };
 
 }
