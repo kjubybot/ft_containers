@@ -48,9 +48,10 @@ namespace ft {
         if (node->color == RED && node->parent->parent == node)
             node = node->right;
         else if (node->left) {
-            node = node->left;
-            while (node->right)
-                node = node->right;
+            rb_tree_node<T>* p = node->left;
+            while (p->right)
+                p = p->right;
+            node = p;
         } else {
             rb_tree_node<T>* p = node->parent;
             while (node == p->left) {
@@ -226,7 +227,7 @@ namespace ft {
             x->parent = y;
         }
 
-        iterator insert_and_rebalance(const bool insert_left, node_type x, node_type p) {
+        void insert_and_rebalance(const bool insert_left, node_type x, node_type p) {
             x->color = RED;
             x->parent = p;
             x->right = 0;
@@ -249,7 +250,7 @@ namespace ft {
                 node_type gp = x->parent->parent;
                 if (x->parent == gp->left) {
                     node_type uncle = gp->right;
-                    if (uncle->color == RED) {
+                    if (uncle && uncle->color == RED) {
                         x->parent->color = BLACK;
                         uncle->color = BLACK;
                         gp->color = RED;
@@ -265,7 +266,7 @@ namespace ft {
                     }
                 } else {
                     node_type uncle = gp->left;
-                    if (uncle->color == RED) {
+                    if (uncle && uncle->color == RED) {
                         x->parent->color = BLACK;
                         uncle->color = BLACK;
                         gp->color = RED;
@@ -311,6 +312,8 @@ namespace ft {
                     y->right = z->right;
                     y->right->parent = y;
                 }
+                else
+                    xp = y;
                 if (z == header.parent)
                     header.parent = y;
                 else if (z == z->parent->left)
@@ -318,7 +321,6 @@ namespace ft {
                 else
                     z->parent->right = y;
                 y->parent = z->parent;
-                y->color = z->color;
                 std::swap(y->color, z->color);
                 y = z;
             } else {
@@ -458,7 +460,7 @@ namespace ft {
             return n;
         }
 
-        node_type _copy(const node_type x, const node_type p) {
+        node_type _copy(node_type x, node_type p) {
             node_type top = _clone_node(x);
             top->parent = p;
 
@@ -497,7 +499,7 @@ namespace ft {
 
         rb_tree(const rb_tree& x) {
             if (x.header.parent) {
-                header.parent = _copy(x.header.parent, header);
+                header.parent = _copy(x.header.parent, &header);
                 header.left = rb_tree_node<Val>::minimum(header.parent);
                 header.right = rb_tree_node<Val>::maximum(header.parent);
                 node_count = x.node_count;
@@ -512,9 +514,9 @@ namespace ft {
                 clear();
                 _comp = x._comp;
                 if (x.header.parent) {
-                    header.parent = _copy(x.header.parent, header);
-                    header.left = rb_tree_node<Val>::minimum(x.header.parent);
-                    header.right = rb_tree_node<Val>::maximum(x.header.parent);
+                    header.parent = _copy(x.header.parent, &header);
+                    header.left = rb_tree_node<Val>::minimum(header.parent);
+                    header.right = rb_tree_node<Val>::maximum(header.parent);
                     node_count = x.node_count;
                 }
             }
@@ -552,7 +554,7 @@ namespace ft {
         { return node_count; }
 
         size_type max_size() const
-        { return allocator_type(node_allocator).max_size(); }
+        { return node_allocator.max_size(); }
 
         std::pair<iterator, bool> insert_unique(const value_type& val) {
            node_type x = header.parent;
@@ -589,7 +591,7 @@ namespace ft {
 
         iterator insert_unique(iterator position, const value_type& val) {
             if (position.node == &header) {
-                if (size() > 0 && _comp(header.right.first, val.first))
+                if (size() > 0 && _comp(header.right->val.first, val.first))
                     return insert(0, header.right, val);
                 else
                     return insert_unique(val).first;
@@ -685,16 +687,70 @@ namespace ft {
                 erase(first);
         }
 
+        void swap(rb_tree& x) {
+            if (header.parent == 0) {
+                if (x.header.parent) {
+                    header.parent = x.header.parent;
+                    header.right = x.header.right;
+                    header.left = x.header.left;
+                    header.parent->parent = &header;
+
+                    x.header.parent = 0;
+                    x.header.left = 0;
+                    x.header.right = 0;
+                }
+            } else if (x.header.parent == 0) {
+                x.header.parent = header.parent;
+                x.header.right = header.right;
+                x.header.left = header.left;
+                x.header.parent->parent = &x.header;
+
+                header.parent = 0;
+                header.left = 0;
+                header.right = 0;
+            } else {
+                std::swap(header.parent, x.header.parent);
+                std::swap(header.left, x.header.left);
+                std::swap(header.right, x.header.right);
+
+                header.parent->parent = &header;
+                x.header.parent->parent = &x.header;
+            }
+            std::swap(node_count, x.node_count);
+            std::swap(_comp, x._comp);
+        }
+
         void clear()
         { erase(begin(), end()); }
 
         key_compare key_comp() const
         { return _comp; }
 
+        iterator find(const Key& key) {
+            iterator x = _lower_bound(header.parent, &header, key);
+            return (x == end() || _comp(key, x->first)) ? end() : x;
+        }
+
+        const_iterator find(const Key& key) const {
+            const_iterator x = _lower_bound(header.parent, &header, key);
+            return (x == end() || _comp(key, x->first)) ? end() : x;
+        }
+
+        size_type count(const Key& key) const {
+            std::pair<iterator, iterator> r = equal_range(key);
+            return std::distance(r.first, r.second);
+        }
+
         iterator lower_bound(const Key& key)
         { return _lower_bound(header.parent, &header, key); }
 
+        const_iterator lower_bound(const Key& key) const
+        { return _lower_bound(header.parent, &header, key); }
+
         iterator upper_bound(const Key& key)
+        { return _upper_bound(header.parent, &header, key); }
+
+        const_iterator upper_bound(const Key& key) const
         { return _upper_bound(header.parent, &header, key); }
 
         std::pair<iterator, iterator> equal_range(const Key& key) {
@@ -702,7 +758,7 @@ namespace ft {
             node_type y = &header;
 
             while (x) {
-                if (_comp(x->val.fisrt, key))
+                if (_comp(x->val.first, key))
                     x = x->right;
                 else if (_comp(key, x->val.first))
                     y = x, x = x->left;
