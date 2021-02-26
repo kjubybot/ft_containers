@@ -21,3 +21,8 @@ add_executable(queue_test
 add_executable(stack_test
         stack.hpp
         stack_main.cpp)
+
+add_executable(map_test
+        rb_tree.hpp
+        map.hpp
+        map_main.cpp)
