@@ -2,6 +2,7 @@
 #define FT_CONTAINERS_MAP_HPP
 
 #include "rb_tree.hpp"
+#include <functional>
 
 namespace ft {
     template <class Key, class T, class Compare = std::less<Key>, class Alloc = std::allocator<std::pair<const Key, T> > >
@@ -131,8 +132,8 @@ namespace ft {
         const_iterator find(const key_type& key) const
         { return tree.find(key); }
 
-        size_type count(const key_type* key) const
-        { return tree.coun(key); }
+        size_type count(const key_type& key) const
+        { return tree.count(key); }
 
         iterator lower_bound(const key_type& key)
         { return tree.lower_bound(key); }

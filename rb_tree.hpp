@@ -2,6 +2,7 @@
 #define FT_CONTAINERS_RB_TREE_HPP
 
 #include <memory>
+#include <cstddef>
 
 namespace ft {
     enum rb_tree_color { RED = false, BLACK = true };
@@ -119,7 +120,7 @@ namespace ft {
         typedef const T* pointer;
         typedef ptrdiff_t difference_type;
         typedef std::bidirectional_iterator_tag iterator_category;
-        typedef rb_tree_iterator<T> _Self;
+        typedef rb_tree_const_iterator<T> _Self;
 
         const rb_tree_node<T>* node;
 
@@ -133,24 +134,24 @@ namespace ft {
         { return &node->val; }
 
         _Self& operator++() {
-            node = rb_tree_increment(node);
+            node = rb_tree_increment(const_cast<rb_tree_node<T>*>(node));
             return *this;
         }
 
         _Self operator++(int) {
             _Self tmp = *this;
-            node = rb_tree_increment(node);
+            node = rb_tree_increment(const_cast<rb_tree_node<T>*>(node));
             return tmp;
         }
 
         _Self& operator--() {
-            node = rb_tree_decrement(node);
+            node = rb_tree_decrement(const_cast<rb_tree_node<T>*>(node));
             return *this;
         }
 
         _Self operator--(int) {
             _Self tmp = *this;
-            node = rb_tree_decrement(node);
+            node = rb_tree_decrement(const_cast<rb_tree_node<T>*>(node));
             return tmp;
         }
 
@@ -281,8 +282,8 @@ namespace ft {
                         rotate_left(gp);
                     }
                 }
-            header.parent->color = BLACK;
             }
+            header.parent->color = BLACK;
         }
 
         node_type rebalance_for_erase(const node_type z) {
@@ -424,7 +425,7 @@ namespace ft {
             return iterator(y);
         }
 
-        const_iterator _lower_bound(const node_type x, const node_type y, const Key& key) const {
+        const_iterator _lower_bound(node_type x, node_type y, const Key& key) const {
             while (x != 0)
                 if (!_comp(x->val.first, key))
                     y = x, x = x->left;
@@ -442,7 +443,7 @@ namespace ft {
             return iterator(y);
         }
 
-        const_iterator _upper_bound(const node_type x, const node_type y, const Key& key) const {
+        const_iterator _upper_bound(node_type x, node_type y, const Key& key) const {
             while (x != 0)
                 if (_comp(key, x->val.first))
                     y = x, x = x->left;
@@ -683,8 +684,8 @@ namespace ft {
         }
 
         void erase(iterator first, iterator last) {
-            for (; first != last; ++first)
-                erase(first);
+            while (first != last)
+                erase(first++);
         }
 
         void swap(rb_tree& x) {
@@ -737,7 +738,7 @@ namespace ft {
         }
 
         size_type count(const Key& key) const {
-            std::pair<iterator, iterator> r = equal_range(key);
+            std::pair<const_iterator, const_iterator> r = equal_range(key);
             return std::distance(r.first, r.second);
         }
 
@@ -773,16 +774,16 @@ namespace ft {
         }
 
         std::pair<const_iterator, const_iterator> equal_range(const Key& key) const {
-            const node_type x = header.parent;
-            const node_type y = &header;
+            node_type x = header.parent;
+            node_type y = const_cast<node_type>(&header);
 
             while (x) {
-                if (_comp(x->val.fisrt, key))
+                if (_comp(x->val.first, key))
                     x = x->right;
                 else if (_comp(key, x->val.first))
                     y = x, x = x->left;
                 else {
-                    const node_type xx(x), yy(y);
+                    node_type xx(x), yy(y);
                     y = x, x = x->left;
                     xx = xx->right;
                     return std::pair<const_iterator, const_iterator>(_lower_bound(x, y, key), _upper_bound(xx, yy, key));
@@ -794,7 +795,6 @@ namespace ft {
         allocator_type get_allocator() const
         { return allocator_type(node_allocator); }
     };
-
 }
 
 #endif

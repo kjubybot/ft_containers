@@ -179,5 +179,38 @@ int main() {
 
     cout << "========" << endl;
     cout << "Testing find (on previous)" << endl;
+    print_map(m3);
+    print_map(fm3);
+    cout << "Existing (2)" << endl;
+    cout << "std::map: " << (*m3.find(2)).second << "; ft::map: " << (*fm3.find(2)).second << endl;
+    cout << "Nonexistent (iter == end())" << endl;
+    cout << "std::map: " << (m3.find(7) == m3.end()) << "; ft::map: " << (fm3.find(7) == fm3.end()) << endl;
+    cout << endl;
+
+    cout << "Testing count (on previous)" << endl;
+    cout << "Existing (3)" << endl;
+    cout << "std::map: " << m3.count(3) << "; ft::map: " << fm3.count(3) << endl;
+    cout << "Nonexstent (9)" << endl;
+    cout << "std::map: " << m3.count(9) << "; ft::map: " << fm3.count(9) << endl;
+    cout << endl;
+
+    cout << "========" << endl;
+    cout << "Testing lower_bound (on previous)" << endl;
+    cout << "Using 2" << endl;
+    cout << "std::map: " << m3.lower_bound(2)->second << "; ft::map: " << fm3.lower_bound(2)->second << endl;
+    cout << endl;
+
+    cout << "Testing upper_bound (on previous)" << endl;
+    cout << "Using 2" << endl;
+    cout << "std::map: " << m3.upper_bound(2)->second << "; ft::map: " << fm3.upper_bound(2)->second << endl;
+    cout << endl;
+
+    cout << "Testing equal_range (on previous)" << endl;
+    cout << "Existent 2" << endl;
+    cout << "std::map: " << m3.equal_range(2).first->second << " to " << m3.equal_range(2).second->second <<
+        "; ft::map: " << fm3.equal_range(2).first->second << " to " << fm3.equal_range(2).second->second << endl;
+    cout << "Nonexistent (first == second == end())" << endl;
+    cout << "std::map: " << (m3.equal_range(9).first == m3.equal_range(9).second && m3.equal_range(9).second == m3.end()) <<
+        "; ft::map: " << (fm3.equal_range(9).first == fm3.equal_range(9).second && fm3.equal_range(9).second == fm3.end()) << endl;
 
 };
