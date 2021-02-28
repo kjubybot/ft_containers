@@ -403,7 +403,7 @@ namespace ft {
         template <class InputIterator>
         deque(InputIterator first, InputIterator last, const alloc_type& allocator = alloc_type()) :
             map(0), map_size(0), start(), finish(), allocator(allocator) {
-            typedef typename ::is_integer<InputIterator>::type Integral;
+            typedef typename is_integer<InputIterator>::type Integral;
             initialize_dispatch(first, last, Integral());
         }
 
@@ -506,7 +506,7 @@ namespace ft {
 
         template <class InputIterator>
         void assign(InputIterator first, InputIterator last) {
-            typedef typename ::is_integer<InputIterator>::type Integral;
+            typedef typename is_integer<InputIterator>::type Integral;
             assign_dispatch(first, last, Integral());
         }
 
@@ -594,12 +594,12 @@ namespace ft {
 
         template <class InputIterator>
         void insert(iterator position, InputIterator first, InputIterator last) {
-            typedef typename ::is_integer<InputIterator>::type Integral;
+            typedef typename is_integer<InputIterator>::type Integral;
             insert_dispatch(position, first, last, Integral());
         }
 
         iterator erase(iterator position) {
-            iterator next = begin();
+            iterator next = position;
             ++next;
             difference_type index = position - start;
             if (index < size() / 2) {

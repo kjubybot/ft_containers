@@ -1,5 +1,5 @@
-#ifndef FT_CONTAINERS_MAP_HPP
-#define FT_CONTAINERS_MAP_HPP
+#ifndef FT_CONTAINERS_MULTIMAP_HPP
+#define FT_CONTAINERS_MULTIMAP_HPP
 
 #include <functional>
 #include "rb_tree.hpp"
@@ -7,7 +7,7 @@
 
 namespace ft {
     template <class Key, class T, class Compare = std::less<Key>, class Alloc = std::allocator<std::pair<const Key, T> > >
-    class map {
+    class multimap {
     public:
         typedef Key key_type;
         typedef T mapped_type;
@@ -16,7 +16,7 @@ namespace ft {
         typedef Alloc allocator_type;
 
         class value_compare : std::binary_function<value_type, value_type, bool> {
-            friend class map;
+            friend class multimap;
         protected:
             Compare comp;
             value_compare(Compare c) : comp(c) {}
@@ -40,18 +40,18 @@ namespace ft {
         typedef ptrdiff_t difference_type;
         typedef size_t size_type;
 
-        explicit map(const key_compare& comp = key_compare(), const allocator_type& alloc = allocator_type()) :
-            tree(comp, alloc) {}
+        explicit multimap(const key_compare& comp = key_compare(), const allocator_type& alloc = allocator_type()) :
+                tree(comp, alloc) {}
 
         template <class InputIterator>
-        map(InputIterator first, InputIterator last, const key_compare& comp = key_compare(), const allocator_type& alloc = allocator_type()) :
-            tree(comp, alloc) {
-            tree.insert_unique(first, last);
+        multimap(InputIterator first, InputIterator last, const key_compare& comp = key_compare(), const allocator_type& alloc = allocator_type()) :
+                tree(comp, alloc) {
+            tree.insert_equal(first, last);
         }
 
-        map(const map& x) : tree(x.tree) {}
+        multimap(const multimap& x) : tree(x.tree) {}
 
-        map& operator=(const map& x) {
+        multimap& operator=(const multimap& x) {
             tree = x.tree;
             return *this;
         }
@@ -89,22 +89,15 @@ namespace ft {
         size_type max_size() const
         { return tree.max_size(); }
 
-        mapped_type& operator[](const key_type& key) {
-            iterator x = find(key);
-            if (x == end() || key_comp()(key, x->first))
-                x = insert(x, value_type(key, mapped_type()));
-            return x->second;
-        }
-
-        std::pair<iterator, bool> insert(const value_type& val)
-        { return tree.insert_unique(val); }
+        iterator insert(const value_type& val)
+        { return tree.insert_equal(val); }
 
         iterator insert(iterator position, const value_type& val)
-        { return tree.insert_unique(position, val); }
+        { return tree.insert_equal(position, val); }
 
         template <class InputIterator>
         void insert(InputIterator first, InputIterator last)
-        { tree.insert_unique(first, last); }
+        { tree.insert_equal(first, last); }
 
         void erase(iterator position)
         { tree.erase(position); }
@@ -115,7 +108,7 @@ namespace ft {
         void erase(iterator first, iterator last)
         { tree.erase(first, last); }
 
-        void swap(map& x)
+        void swap(multimap& x)
         { tree.swap(x.tree); }
 
         void clear()
@@ -158,5 +151,6 @@ namespace ft {
         { return tree.get_allocator(); }
     };
 }
+
 
 #endif

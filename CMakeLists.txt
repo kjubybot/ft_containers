@@ -7,22 +7,41 @@ include_directories(.)
 
 add_executable(list_test
         list.hpp
-        list_main.cpp)
+        tests/list_main.cpp)
 
 add_executable(deque_test
         deque.hpp
-        deque_main.cpp)
+        tests/deque_main.cpp)
 
 add_executable(queue_test
         queue.hpp
-        queue_main.cpp)
+        tests/queue_main.cpp)
 
 
 add_executable(stack_test
         stack.hpp
-        stack_main.cpp)
+        tests/stack_main.cpp)
 
 add_executable(map_test
         rb_tree.hpp
         map.hpp
-        map_main.cpp)
+        tests/map_main.cpp)
+
+add_executable(multimap_test
+        rb_tree.hpp
+        multimap.hpp
+        tests/multimap_main.cpp)
+
+add_executable(set_test
+        rb_tree.hpp
+        set.hpp
+        tests/set_main.cpp)
+
+add_executable(multiset_test
+        rb_tree.hpp
+        multiset.hpp
+        tests/multiset_main.cpp)
+
+add_executable(vector_test
+        vector.hpp
+        tests/vector_main.cpp)

@@ -1,6 +1,6 @@
-#include "map.hpp"
-#include <map>
 #include <iostream>
+#include <map>
+#include "map.hpp"
 
 using std::cout;
 using std::endl;

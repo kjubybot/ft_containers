@@ -162,7 +162,15 @@ namespace ft {
         { return node != other.node; }
     };
 
-    template <class Key, class Val, class Compare, class Alloc = std::allocator<Val> >
+    template <class Val>
+    bool operator==(const rb_tree_iterator<Val>& a, const rb_tree_const_iterator<Val>& b)
+    { return a.node == b.node; }
+
+    template <class Val>
+    bool operator!=(const rb_tree_iterator<Val>& a, const rb_tree_const_iterator<Val>& b)
+    { return a.node != b.node; }
+
+    template <class Key, class Val, class KeyOfValue, class Compare, class Alloc = std::allocator<Val> >
     class rb_tree {
         typedef typename Alloc::template rebind<rb_tree_node<Val> >::other node_alloc_type;
     public:
@@ -408,7 +416,7 @@ namespace ft {
         }
 
         iterator insert(node_type x, node_type p, const value_type& val) {
-            bool insert_left = (x != 0 || p == &header || _comp(val.first, p->val.first));
+            bool insert_left = (x != 0 || p == &header || _comp(KeyOfValue()(val), KeyOfValue()(p->val)));
             node_type n = node_allocator.allocate(1);
             allocator_type(node_allocator).construct(&n->val, val);
             insert_and_rebalance(insert_left, n, p);
@@ -418,7 +426,7 @@ namespace ft {
 
         iterator _lower_bound(node_type x, node_type y, const Key& key) {
             while (x != 0)
-                if (!_comp(x->val.first, key))
+                if (!_comp(KeyOfValue()(x->val), key))
                     y = x, x = x->left;
                 else
                     x = x->right;
@@ -427,7 +435,7 @@ namespace ft {
 
         const_iterator _lower_bound(node_type x, node_type y, const Key& key) const {
             while (x != 0)
-                if (!_comp(x->val.first, key))
+                if (!_comp(KeyOfValue()(x->val), key))
                     y = x, x = x->left;
                 else
                     x = x->right;
@@ -436,7 +444,7 @@ namespace ft {
 
         iterator _upper_bound(node_type x, node_type y, const Key& key) {
             while (x != 0)
-                if (_comp(key, x->val.first))
+                if (_comp(key, KeyOfValue()(x->val)))
                     y = x, x = x->left;
                 else
                     x = x->right;
@@ -445,7 +453,7 @@ namespace ft {
 
         const_iterator _upper_bound(node_type x, node_type y, const Key& key) const {
             while (x != 0)
-                if (_comp(key, x->val.first))
+                if (_comp(key, KeyOfValue()(x->val)))
                     y = x, x = x->left;
                 else
                     x = x->right;
@@ -564,7 +572,7 @@ namespace ft {
 
            while (x) {
                y = x;
-               comp = _comp(val.first, x->val.first);
+               comp = _comp(KeyOfValue()(val), KeyOfValue()(x->val));
                x = comp ? x->left : x->right;
            }
            iterator j = iterator(y);
@@ -574,7 +582,7 @@ namespace ft {
                else
                    --j;
            }
-           if (_comp(j.node->val.first, val.first))
+           if (_comp(KeyOfValue()(j.node->val), KeyOfValue()(val)))
                return std::pair<iterator, bool>(insert(x, y, val), true);
            return std::pair<iterator, bool>(j, false);
         }
@@ -585,35 +593,35 @@ namespace ft {
 
             while (x) {
                 y = x;
-                x = _comp(val.first, x->val.first) ? x->left : x->right;
+                x = _comp(KeyOfValue()(val), KeyOfValue()(x->val)) ? x->left : x->right;
             }
             return insert(x, y, val);
         }
 
         iterator insert_unique(iterator position, const value_type& val) {
             if (position.node == &header) {
-                if (size() > 0 && _comp(header.right->val.first, val.first))
+                if (size() > 0 && _comp(header.right->val.first, KeyOfValue()(val)))
                     return insert(0, header.right, val);
                 else
                     return insert_unique(val).first;
-            } else if (_comp(val.first, position->first)) {
+            } else if (_comp(KeyOfValue()(val), position->first)) {
                 iterator before = position;
                 --before;
                 if (position.node == header.left)
                     return insert(position.node, position.node, val);
-                else if (_comp(before->first, val.first)) {
+                else if (_comp(before->first, KeyOfValue()(val))) {
                     if (before.node->right == 0)
                         return insert(0, before.node, val);
                     else
                         return insert(position.node, position.node, val);
                 } else
                     return insert_unique(val).first;
-            } else if (_comp(position->first, val.first)) {
+            } else if (_comp(position->first, KeyOfValue()(val))) {
                 iterator after = position;
                 ++after;
                 if (position.node == header.right)
                     return insert(0, position.node, val);
-                else if (_comp(val.first, after->first)) {
+                else if (_comp(KeyOfValue()(val), after->first)) {
                     if (position.node->right == 0)
                         return insert(0, position.node, val);
                     else
@@ -626,16 +634,16 @@ namespace ft {
 
         iterator insert_equal(iterator position, const value_type& val) {
             if (position.node == &header) {
-                if (size() > 0 && !_comp(val.first, header.right.first))
+                if (size() > 0 && !_comp(KeyOfValue()(val), header.right.first))
                     return insert(0, header.right, val);
                 else
                     return insert_equal(val);
-            } else if (!_comp(position->first, val.first)) {
+            } else if (!_comp(position->first, KeyOfValue()(val))) {
                 iterator before = position;
                 --before;
                 if (position.node == header.left)
                     return insert(position.node, position.node, val);
-                else if (!_comp(val.first, before->first)) {
+                else if (!_comp(KeyOfValue()(val), before->first)) {
                     if (before.node->right == 0)
                         return insert(0, before.node, val);
                     else
@@ -647,7 +655,7 @@ namespace ft {
                 ++after;
                 if (position.node == header.right)
                     return insert(0, position.node, val);
-                else if (!_comp(after->first, val.first)) {
+                else if (!_comp(after->first, KeyOfValue()(val))) {
                     if (position.node->right == 0)
                         return insert(0, position.node, val);
                     else
@@ -729,12 +737,12 @@ namespace ft {
 
         iterator find(const Key& key) {
             iterator x = _lower_bound(header.parent, &header, key);
-            return (x == end() || _comp(key, x->first)) ? end() : x;
+            return (x == end() || _comp(key, KeyOfValue()(x.node->val))) ? end() : x;
         }
 
         const_iterator find(const Key& key) const {
             const_iterator x = _lower_bound(header.parent, &header, key);
-            return (x == end() || _comp(key, x->first)) ? end() : x;
+            return (x == end() || _comp(key, KeyOfValue()(x.node->val))) ? end() : x;
         }
 
         size_type count(const Key& key) const {
@@ -759,9 +767,9 @@ namespace ft {
             node_type y = &header;
 
             while (x) {
-                if (_comp(x->val.first, key))
+                if (_comp(KeyOfValue()(x->val), key))
                     x = x->right;
-                else if (_comp(key, x->val.first))
+                else if (_comp(key, KeyOfValue()(x->val)))
                     y = x, x = x->left;
                 else {
                     node_type xx(x), yy(y);
@@ -778,9 +786,9 @@ namespace ft {
             node_type y = const_cast<node_type>(&header);
 
             while (x) {
-                if (_comp(x->val.first, key))
+                if (_comp(KeyOfValue()(x->val), key))
                     x = x->right;
-                else if (_comp(key, x->val.first))
+                else if (_comp(key, KeyOfValue()(x->val)))
                     y = x, x = x->left;
                 else {
                     node_type xx(x), yy(y);

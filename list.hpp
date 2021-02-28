@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <iterator>
 #include <limits>
+#include "type_traits.hpp"
 
 namespace ft {
     template <class T>
@@ -54,6 +55,11 @@ namespace ft {
     template <class T>
     struct list_iterator {
         typedef list_iterator<T> _Self;
+        typedef T value_type;
+        typedef ptrdiff_t difference_type;
+        typedef T* pointer;
+        typedef T& reference;
+        typedef std::bidirectional_iterator_tag iterator_category;
         ListNode<T>* node;
 
         list_iterator() : node() {}
@@ -74,6 +80,11 @@ namespace ft {
     template <class T>
     struct list_const_iterator {
         typedef list_const_iterator<T> _Self;
+        typedef const T value_type;
+        typedef ptrdiff_t difference_type;
+        typedef const T* pointer;
+        typedef const T& reference;
+        typedef std::bidirectional_iterator_tag iterator_category;
         const ListNode<T>* node;
 
         list_const_iterator() : node() {}
@@ -99,22 +110,12 @@ namespace ft {
     bool operator!=(const list_iterator<T>& a, const list_const_iterator<T>& b)
     { return a.node != b.node; }
 
-    template <class T>
+    template <class T, class Alloc = std::allocator<T> >
     class list {
-        ListNode<T> header;
-        size_t _size;
-
-        size_t distance(const ListNode<T>* first, const ListNode<T>* last) {
-            size_t n = 0;
-            while (first != last) {
-                ++n;
-                first = first->next;
-            }
-            return n;
-        }
-    public:
         typedef ListNode<T> node_type;
-        typedef ptrdiff_t diff_type;
+        typedef typename Alloc::template rebind<node_type>::other node_alloc_type;
+    public:
+        typedef ptrdiff_t difference_type;
         typedef T value_type;
         typedef T& reference;
         typedef const T& const_reference;
@@ -124,28 +125,79 @@ namespace ft {
         typedef list_const_iterator<T> const_iterator;
         typedef std::reverse_iterator<iterator> reverse_iterator;
         typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+        typedef size_t size_type;
+        typedef Alloc allocator_type;
+    private:
+        ListNode<T> header;
+        size_type _size;
+        node_alloc_type node_allocator;
 
-        list() : header(), _size(0) {
-            header.next = &header;
-            header.prev = &header;
+        size_type distance(const ListNode<T>* first, const ListNode<T>* last) {
+            size_type n = 0;
+            while (first != last) {
+                ++n;
+                first = first->next;
+            }
+            return n;
         }
 
-        list(size_t n, const_reference val = value_type()) : header(), _size(0) {
-            header.next = &header;
-            header.prev = &header;
-            for (size_t i = 0; i < n; ++i)
-                push_back(val);
+        template <class Integer>
+        void initialize_dispatch(Integer n, Integer x, true_type) {
+            for (size_type i = 0; i < n; ++i)
+                push_back(x);
         }
 
-        template <class InputIterator>
-        list(InputIterator first, InputIterator last) : header(), _size(0) {
-            header.next = &header;
-            header.prev = &header;
+        template<class InputIterator>
+        void initialize_dispatch(InputIterator first, InputIterator last, false_type) {
             while (first != last)
                 push_back(*first++);
         }
 
-        list(const list& x) : header(), _size(0) {
+        template <class Integer>
+        void insert_dispatch(iterator position, Integer n, Integer x, true_type) {
+            for (size_type i = 0; i < n; i++)
+                insert(position, x);
+        }
+
+        template <class InputIterator>
+        void insert_dispatch(iterator position, InputIterator first, InputIterator last, false_type) {
+            while (first != last)
+                insert(position, value_type(*first++));
+        }
+
+        template <class Integer>
+        void assign_dispatch(Integer n, Integer x, true_type) {
+            for (size_type i = 0; i < n; ++i)
+                push_back(x);
+        }
+
+        template <class InputIterator>
+        void assign_dispatch(InputIterator first, InputIterator last, false_type)
+        { insert(end(), first, last); }
+    public:
+        explicit list(const allocator_type& alloc = allocator_type()): header(), _size(0), node_allocator(alloc) {
+            header.next = &header;
+            header.prev = &header;
+        }
+
+        explicit list(size_type n, const_reference val = value_type(), const allocator_type& alloc = allocator_type()) :
+            header(), _size(0), node_allocator(alloc) {
+            header.next = &header;
+            header.prev = &header;
+            for (size_type i = 0; i < n; ++i)
+                push_back(val);
+        }
+
+        template <class InputIterator>
+        list(InputIterator first, InputIterator last, const allocator_type& alloc = allocator_type()) :
+            header(), _size(0), node_allocator(alloc) {
+            header.next = &header;
+            header.prev = &header;
+            typedef typename is_integer<InputIterator>::type Integral;
+            initialize_dispatch(first, last, Integral());
+        }
+
+        list(const list& x) : header(), _size(0), node_allocator(x.node_allocator) {
             header.next = &header;
             header.prev = &header;
             insert(end(), x.begin(), x.end());
@@ -154,8 +206,14 @@ namespace ft {
         ~list() { clear(); }
 
         list& operator=(const list& x) {
-            clear();
-            insert(end(), x.begin(), x.end());
+            iterator first1 = begin();
+            const_iterator first2 = x.begin();
+            for (; first1 != end() && first2 != x.end(); ++first1, ++first2)
+                *first1 = *first2;
+            if (first2 == x.end())
+                erase(first1, end());
+            else
+                insert(end(), first2, x.end());
             return *this;
         }
 
@@ -169,8 +227,8 @@ namespace ft {
         const_reverse_iterator rend() const { return const_reverse_iterator(begin()); }
 
         bool empty() const { return _size == 0; }
-        size_t size() const { return _size; }
-        size_t max_size() const { return std::numeric_limits<diff_type>::max() / sizeof(node_type); }
+        size_type size() const { return _size; }
+        size_type max_size() const { return node_allocator.max_size(); }
 
         reference front() { return *begin(); }
         const_reference front() const { return *begin(); }
@@ -180,17 +238,19 @@ namespace ft {
         template <class InputIterator>
         void assign(InputIterator first, InputIterator last) {
             clear();
-            insert(end(), first, last);
+            typedef typename is_integer<InputIterator>::type Integral;
+            assign_dispatch(first, last, Integral());
         }
 
-        void assign(size_t n, const_reference val) {
+        void assign(size_type n, const_reference val) {
             clear();
-            for (size_t i = 0; i < n; ++i)
+            for (size_type i = 0; i < n; ++i)
                 push_back(val);
         }
 
         iterator insert(iterator position, const value_type& val) {
-            node_type* node = new node_type(val);
+            node_type* node = node_allocator.allocate(1);
+            allocator_type(node_allocator).construct(&node->data, val);
             node->prev = position.node->prev;
             node->next = position.node;
             node->prev->next = node;
@@ -199,15 +259,15 @@ namespace ft {
             return iterator(node);
         }
 
-        void insert(iterator position, size_t n, const value_type& val) {
-            for (size_t i = 0; i < n; i++)
+        void insert(iterator position, size_type n, const value_type& val) {
+            for (size_type i = 0; i < n; i++)
                 insert(position, val);
         }
 
         template <class InputIterator>
         void insert(iterator position, InputIterator first, InputIterator last) {
-            while (first != last)
-                insert(position, value_type(*first++));
+            typedef typename is_integer<InputIterator>::type Integral;
+            insert_dispatch(position, first, last, Integral());
         }
 
         void push_front(const_reference val) {
@@ -231,7 +291,8 @@ namespace ft {
             ++position;
             tmp.node->prev->next = position.node;
             position.node->prev = tmp.node->prev;
-            delete tmp.node;
+            allocator_type(node_allocator).destroy(&tmp.node->data);
+            node_allocator.deallocate(tmp.node, 1);
             --_size;
             return position;
         }
@@ -239,6 +300,7 @@ namespace ft {
         iterator erase(iterator first, iterator last) {
             while (first != last)
                 first = erase(first);
+            return first;
         }
 
         void swap(list& x) {
@@ -246,7 +308,7 @@ namespace ft {
             std::swap(_size, x._size);
         }
 
-        void resize(size_t n, value_type val = value_type()) {
+        void resize(size_type n, value_type val = value_type()) {
             while (_size != n)
                 n > _size ? push_back(val) : pop_back();
         }
@@ -278,7 +340,7 @@ namespace ft {
         }
 
         void splice(iterator position, list& x, iterator first, iterator last) {
-            size_t dist = distance(first.node, last.node);
+            size_type dist = distance(first.node, last.node);
             position.node->transfer(first.node, last.node);
             _size += dist;
             x._size -= dist;
@@ -403,6 +465,9 @@ namespace ft {
                --it;
            } while (it != end());
         }
+
+        allocator_type get_allocator() const
+        { return allocator_type(node_allocator); }
     };
 
     template <class T>

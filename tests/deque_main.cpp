@@ -1,6 +1,6 @@
 #include <iostream>
-#include "deque.hpp"
 #include <deque>
+#include "deque.hpp"
 
 using std::cout;
 using std::endl;
