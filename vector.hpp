@@ -372,6 +372,12 @@ namespace ft {
             end_of_storage = start + x.capacity();
         }
 
+        ~vector()
+        {
+            erase_at_end(start);
+            allocator.deallocate(start, end_of_storage - start);
+        }
+
         vector& operator=(const vector& x) {
             if (this != &x) {
                 size_type l = x.size();
